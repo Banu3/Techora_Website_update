@@ -845,9 +845,17 @@ export default function AdminDashboard() {
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
+      let data = {};
+      try {
+        data = await res.json();
+      } catch (e) {
+        // Not JSON
+      }
+
       if (!res.ok || !data.success) {
-        setJobFormError(data.error || 'Failed to save mandate.');
+        const errMsg = data.error || data.message || `Server returned HTTP ${res.status}`;
+        const errDetails = data.details ? ` - ${data.details}` : '';
+        setJobFormError(`${errMsg}${errDetails}`);
         return;
       }
 

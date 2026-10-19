@@ -35,12 +35,17 @@ function flattenArgs(args) {
 let dbInstance;
 
 if (useTurso) {
+  let dbUrl = (process.env.TURSO_DATABASE_URL || '').trim();
+  if (dbUrl.startsWith('libsql://')) {
+    dbUrl = dbUrl.replace(/^libsql:\/\//, 'https://');
+  }
+
   const tursoClient = createClient({
-    url: process.env.TURSO_DATABASE_URL,
-    authToken: process.env.TURSO_AUTH_TOKEN,
+    url: dbUrl,
+    authToken: (process.env.TURSO_AUTH_TOKEN || '').trim(),
   });
 
-  console.log(`[DB] Connected to Turso Cloud Database: ${process.env.TURSO_DATABASE_URL}`);
+  console.log(`[DB] Connected to Turso Cloud Database via HTTPS: ${dbUrl}`);
 
   dbInstance = {
     isTurso: true,
