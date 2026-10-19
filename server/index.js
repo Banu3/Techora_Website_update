@@ -224,7 +224,7 @@ app.get('/api/jobs', async (req, res) => {
     return res.json({ success: true, count: formattedJobs.length, jobs: formattedJobs });
   } catch (err) {
     console.error('Error fetching jobs:', err.message);
-    return res.status(500).json({ error: 'Internal system error retrieving job opportunities.' });
+    return res.status(500).json({ error: 'Internal system error retrieving job opportunities.', details: err.message });
   }
 });
 
@@ -1189,7 +1189,7 @@ app.post('/api/admin/jobs', requireAdminAuth, async (req, res) => {
     return res.status(201).json({ success: true, message: 'Mandate successfully created and published.', job: created });
   } catch (err) {
     console.error('Error creating job:', err.message);
-    return res.status(500).json({ error: 'Server error creating mandate.' });
+    return res.status(500).json({ error: 'Server error creating mandate.', details: err.message });
   }
 });
 
