@@ -26,8 +26,6 @@ export default function WebsiteContentEditor() {
   const [pageDrafts, setPageDrafts] = useState({});
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [autoSaveStatus, setAutoSaveStatus] = useState('saved'); // 'saved' | 'saving' | 'unsaved'
-  const autoSaveTimerRef = useRef(null);
 
   const [expandedSections, setExpandedSections] = useState({
     'home.hero': true,
@@ -50,11 +48,10 @@ export default function WebsiteContentEditor() {
     return Boolean(pageDrafts[activePage]);
   }, [pageDrafts, activePage]);
 
-  // Save changes to backend & localStorage
+  // Save changes to backend & publish to live website only on manual click
   const handleSave = async (overrideData = null) => {
     const dataToSave = overrideData || pageDrafts[activePage] || currentPageData;
     setIsSaving(true);
-    setAutoSaveStatus('saving');
     try {
       await updatePageContent(activePage, dataToSave);
       setPageDrafts((prev) => {
@@ -62,18 +59,17 @@ export default function WebsiteContentEditor() {
         delete copy[activePage];
         return copy;
       });
-      setAutoSaveStatus('saved');
       setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
+      setTimeout(() => setSaveSuccess(false), 3500);
     } catch (err) {
-      console.error('Failed to save:', err);
-      setAutoSaveStatus('unsaved');
+      console.error('Failed to publish content:', err);
+      alert('Failed to publish content. Please check connection and try again.');
     } finally {
       setIsSaving(false);
     }
   };
 
-  // Handle field change by path (e.g. ['welcome', 'eyebrow'])
+  // Handle field change by path (e.g. ['welcome', 'eyebrow']) - STAYS LOCAL AS DRAFT ONLY
   const handleFieldChange = (pathArr, value) => {
     const updated = JSON.parse(JSON.stringify(pageDrafts[activePage] || content[activePage] || defaults[activePage] || {}));
     let target = updated;
@@ -86,20 +82,24 @@ export default function WebsiteContentEditor() {
     }
     target[pathArr[pathArr.length - 1]] = value;
 
-    // Update draft in state
+    // Update draft in local state ONLY. Auto-save is strictly disabled.
     setPageDrafts((prev) => ({
       ...prev,
       [activePage]: updated,
     }));
-    setAutoSaveStatus('unsaved');
+  };
 
-    // Debounced AUTO-SAVE (500ms): Automatically saves to website without requiring manual button click!
-    if (autoSaveTimerRef.current) {
-      clearTimeout(autoSaveTimerRef.current);
-    }
-    autoSaveTimerRef.current = setTimeout(() => {
-      handleSave(updated);
-    }, 500);
+  // Discard pending edits on active page
+  const handleDiscard = () => {
+    if (!hasChanges) return;
+    const pageObj = PAGE_DEFINITIONS.find((p) => p.id === activePage);
+    const confirmed = window.confirm(`Discard all unsaved edits on "${pageObj?.label || 'this page'}"?`);
+    if (!confirmed) return;
+    setPageDrafts((prev) => {
+      const copy = { ...prev };
+      delete copy[activePage];
+      return copy;
+    });
   };
 
   // Reset page to original factory default
@@ -108,17 +108,14 @@ export default function WebsiteContentEditor() {
     const confirmed = window.confirm(`Are you sure you want to reset all content on "${pageObj?.label}" back to original defaults?`);
     if (!confirmed) return;
 
-    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
-
     await resetPageContent(activePage);
     setPageDrafts((prev) => {
       const copy = { ...prev };
       delete copy[activePage];
       return copy;
     });
-    setAutoSaveStatus('saved');
     setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 3000);
+    setTimeout(() => setSaveSuccess(false), 3500);
   };
 
   const toggleSection = (secKey) => {
@@ -238,59 +235,66 @@ export default function WebsiteContentEditor() {
             </h3>
           </div>
 
-          {/* Auto-Save & Status Badge */}
+          {/* Status Badge: Published vs Unsaved Draft */}
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-            {autoSaveStatus === 'saved' ? (
+            {isSaving ? (
               <span
                 style={{
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                  backgroundColor: '#F0FDF4',
-                  color: '#166534',
-                  padding: '3px 10px',
-                  borderRadius: '100px',
-                  border: '1px solid #86EFAC',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
-              >
-                <CheckCircle2 size={13} color="#166534" />
-                Live &amp; Auto-Saved
-              </span>
-            ) : autoSaveStatus === 'saving' ? (
-              <span
-                style={{
-                  fontSize: '0.72rem',
+                  fontSize: '0.75rem',
                   fontWeight: 700,
                   backgroundColor: '#EFF6FF',
                   color: '#1D4ED8',
-                  padding: '3px 10px',
+                  padding: '3px 12px',
                   borderRadius: '100px',
                   border: '1px solid #93C5FD',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
                 }}
               >
-                Syncing with Website...
+                Syncing &amp; Publishing...
+              </span>
+            ) : hasChanges ? (
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  backgroundColor: '#FEF3C7',
+                  color: '#92400E',
+                  padding: '3px 12px',
+                  borderRadius: '100px',
+                  border: '1px solid #FCD34D',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                }}
+              >
+                <AlertCircle size={13} color="#92400E" />
+                Unsaved Draft (Not Live Yet)
               </span>
             ) : (
               <span
                 style={{
-                  fontSize: '0.72rem',
+                  fontSize: '0.75rem',
                   fontWeight: 700,
-                  backgroundColor: '#FEF3C7',
-                  color: '#92400E',
-                  padding: '3px 10px',
+                  backgroundColor: '#F0FDF4',
+                  color: '#166534',
+                  padding: '3px 12px',
                   borderRadius: '100px',
-                  border: '1px solid #FCD34D',
+                  border: '1px solid #86EFAC',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
                 }}
               >
-                Saving Changes...
+                <CheckCircle2 size={13} color="#166534" />
+                Published &amp; Live
               </span>
             )}
           </div>
         </div>
 
-        {/* Action Buttons: Preview, Reset, and Prominent Save */}
+        {/* Action Buttons: Preview, Discard, Reset, and Prominent Save & Publish */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           {/* Live Page Preview Button */}
           <a
@@ -316,6 +320,31 @@ export default function WebsiteContentEditor() {
             <ExternalLink size={14} />
           </a>
 
+          {/* Discard Edits Button (visible when draft has changes) */}
+          {hasChanges && (
+            <button
+              type="button"
+              onClick={handleDiscard}
+              title="Discard unsaved edits"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 14px',
+                borderRadius: '6px',
+                fontSize: '0.8125rem',
+                fontWeight: 600,
+                color: '#DC2626',
+                backgroundColor: '#FEF2F2',
+                border: '1px solid #FECACA',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <span>Discard Edits</span>
+            </button>
+          )}
+
           {/* Reset Page Button */}
           <button
             type="button"
@@ -340,7 +369,7 @@ export default function WebsiteContentEditor() {
             <span>Reset Default</span>
           </button>
 
-          {/* Prominent Save Button */}
+          {/* Prominent Save & Publish Button */}
           <button
             type="button"
             onClick={() => handleSave()}
@@ -349,23 +378,44 @@ export default function WebsiteContentEditor() {
               display: 'inline-flex',
               alignItems: 'center',
               gap: '8px',
-              padding: '9px 18px',
+              padding: '9px 20px',
               borderRadius: '6px',
               fontSize: '0.875rem',
               fontWeight: 700,
               color: 'var(--white)',
-              backgroundColor: 'var(--sky-600)',
+              backgroundColor: hasChanges ? '#0284C7' : '#0F172A',
               border: 'none',
               cursor: isSaving ? 'not-allowed' : 'pointer',
-              boxShadow: '0 2px 8px rgba(47, 164, 231, 0.4)',
-              transition: 'all 0.15s ease',
+              boxShadow: hasChanges ? '0 3px 12px rgba(2, 132, 199, 0.45)' : 'none',
+              transform: hasChanges ? 'scale(1.02)' : 'none',
+              transition: 'all 0.2s ease',
             }}
           >
             <Save size={16} />
-            <span>{isSaving ? 'Publishing...' : 'Save & Publish Now'}</span>
+            <span>{isSaving ? 'Publishing...' : hasChanges ? 'Save & Publish Now ●' : 'Save & Publish Now'}</span>
           </button>
         </div>
       </div>
+
+      {/* Success Notification Banner */}
+      {saveSuccess && (
+        <div
+          style={{
+            padding: '8px 24px',
+            backgroundColor: '#F0FDF4',
+            borderBottom: '1px solid #BBF7D0',
+            color: '#15803D',
+            fontSize: '0.8125rem',
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}
+        >
+          <CheckCircle2 size={16} color="#15803D" />
+          <span>Content successfully published and live on the website!</span>
+        </div>
+      )}
 
       {/* Main CMS Layout (Sidebar Tabs + Content Workspace) */}
       <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
