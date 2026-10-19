@@ -1,0 +1,84 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Job {
+  id              Int           @id @default(autoincrement())
+  slug            String        @unique
+  title           String
+  designation     String
+  engagementType  String        @map("engagement_type")
+  locations       String
+  expMin          Int           @default(0) @map("exp_min")
+  expMax          Int?          @map("exp_max")
+  tags            String[]
+  description     String
+  deadline        DateTime?
+  status          String        @default("active") // active | closed | draft
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  applications    Application[]
+
+  @@index([status])
+  @@index([deadline])
+  @@map("jobs")
+}
+
+model Application {
+  id                 Int      @id @default(autoincrement())
+  jobId              Int      @map("job_id")
+  referenceNo        String   @unique @map("reference_no")
+  title              String   // Mr / Ms / Mrs / Dr
+  firstName          String   @map("first_name")
+  lastName           String   @map("last_name")
+  gender             String
+  dob                DateTime
+  email              String
+  mobile             String
+  city               String
+  company            String
+  designation        String
+  experienceYears    Float    @map("experience_years")
+  currentCtc         String   @map("current_ctc")
+  degree             String
+  institute          String
+  function           String
+  industry           String
+  skills             String[]
+  resumeUrl          String   @map("resume_url")
+  status             String   @default("New") // New | Shortlisted | Interview | Rejected | Hired
+  notes              String?  @default("")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  job                Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, email])
+  @@index([jobId])
+  @@index([function])
+  @@index([industry])
+  @@index([city])
+  @@index([createdAt])
+  @@index([status])
+  @@map("applications")
+}
+
+model Admin {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         String   @default("admin")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("admins")
+}

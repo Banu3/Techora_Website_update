@@ -1,0 +1,52 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Annots [6 0 R] /Resources << /Font << /F1 5 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 300 >>
+stream
+BT
+/F1 12 Tf
+72 720 Td
+(Rohan Sengupta) Tj
+0 -20 Td
+(Click here to send email) Tj
+0 -20 Td
+(Phone: +91 91234 56789) Tj
+0 -20 Td
+(Location: Hyderabad) Tj
+0 -20 Td
+(Jan 2019 - Present Vice President at ICICI Securities Ltd.) Tj
+0 -20 Td
+(Education: Master of Business Administration MBA) Tj
+0 -20 Td
+(Skills: Financial Modeling, Risk Management, Corporate Advisory) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+6 0 obj
+<< /Type /Annot /Subtype /Link /Rect [72 690 200 710] /A << /S /URI /URI (mailto:rohan.sengupta@institutionaladvisory.in) >> >>
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000010 00000 n 
+0000000060 00000 n 
+0000000117 00000 n 
+0000000247 00000 n 
+0000000615 00000 n 
+0000000685 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R >>
+startxref
+820
+%%EOF

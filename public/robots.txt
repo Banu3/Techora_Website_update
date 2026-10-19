@@ -1,0 +1,21 @@
+# robots.txt for TECHORA Consultant Institutional Portal
+User-agent: *
+Allow: /
+Allow: /profile/about-us
+Allow: /profile/our-legacy
+Allow: /profile/leadership
+Allow: /services/recruitment
+Allow: /services/payroll
+Allow: /expertise/industries
+Allow: /expertise/industries/*
+Allow: /careers
+Allow: /partner-with-us
+Allow: /privacy
+
+# Disallow admin routes, API endpoints, and private uploads
+Disallow: /api/
+Disallow: /api/admin/
+Disallow: /private_uploads/
+Disallow: /clients
+
+Sitemap: https://techoraconsultant.com/sitemap.xml
