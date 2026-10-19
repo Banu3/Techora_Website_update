@@ -20,14 +20,27 @@ const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'techora_jwt_secret_key_2026_institutional_portal_production';
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'techora_admin_secret_token_2026';
 
-// Private Uploads Directory
-const privateUploadsDir = path.join(__dirname, '../private_uploads');
-if (!fs.existsSync(privateUploadsDir)) {
-  fs.mkdirSync(privateUploadsDir, { recursive: true });
-}
-const tempDir = path.join(__dirname, '../private_uploads/temp');
-if (!fs.existsSync(tempDir)) {
-  fs.mkdirSync(tempDir, { recursive: true });
+// Private Uploads Directory (safe for local and Vercel serverless /tmp)
+import os from 'os';
+
+const isVercel = Boolean(process.env.VERCEL);
+const privateUploadsDir = isVercel
+  ? path.join(os.tmpdir(), 'techora_private_uploads')
+  : path.join(__dirname, '../private_uploads');
+
+const tempDir = isVercel
+  ? path.join(os.tmpdir(), 'techora_temp')
+  : path.join(__dirname, '../private_uploads/temp');
+
+try {
+  if (!fs.existsSync(privateUploadsDir)) {
+    fs.mkdirSync(privateUploadsDir, { recursive: true });
+  }
+  if (!fs.existsSync(tempDir)) {
+    fs.mkdirSync(tempDir, { recursive: true });
+  }
+} catch (e) {
+  // Silent fallback for read-only serverless filesystems
 }
 
 // Multer Storage Configuration
