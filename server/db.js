@@ -98,16 +98,45 @@ if (useTurso) {
   }
 
   if (Database) {
-    const dataDir = path.join(__dirname, '../data');
-    try {
-      if (!fs.existsSync(dataDir)) {
-        fs.mkdirSync(dataDir, { recursive: true });
+    let dbPath;
+    if (isVercel) {
+      const tmpDbPath = path.join(os.tmpdir(), 'techora.sqlite');
+      const sourceDbPath = path.join(__dirname, '../data/techora.sqlite');
+      try {
+        if (!fs.existsSync(tmpDbPath) && fs.existsSync(sourceDbPath)) {
+          fs.copyFileSync(sourceDbPath, tmpDbPath);
+          console.log('[DB] Copied SQLite database to writable /tmp on Vercel');
+        }
+      } catch (e) {
+        console.warn('[DB] Could not copy SQLite to /tmp:', e.message);
       }
-    } catch (e) {}
+      dbPath = fs.existsSync(tmpDbPath) ? tmpDbPath : sourceDbPath;
+    } else {
+      const dataDir = path.join(__dirname, '../data');
+      try {
+        if (!fs.existsSync(dataDir)) {
+          fs.mkdirSync(dataDir, { recursive: true });
+        }
+      } catch (e) {}
+      dbPath = path.join(dataDir, 'techora.sqlite');
+    }
 
-    const dbPath = path.join(dataDir, 'techora.sqlite');
-    const sqliteDb = new Database(dbPath);
-    sqliteDb.pragma('journal_mode = WAL');
+    let sqliteDb;
+    try {
+      sqliteDb = new Database(dbPath);
+      try {
+        sqliteDb.pragma('journal_mode = WAL');
+      } catch (pErr) {
+        // pragma WAL may fail on certain environments
+      }
+    } catch (err) {
+      console.warn('[DB] Failed to open SQLite in read-write mode, trying readonly:', err.message);
+      try {
+        sqliteDb = new Database(dbPath, { readonly: true });
+      } catch (rErr) {
+        console.error('[DB] Failed to open SQLite in readonly mode:', rErr.message);
+      }
+    }
 
     dbInstance = {
       isTurso: false,
