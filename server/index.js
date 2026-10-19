@@ -143,14 +143,14 @@ app.get('/api/health', (req, res) => {
     status: 'healthy',
     organization: 'TECHORA Consultant',
     timestamp: new Date().toISOString(),
-    database: 'SQLite (WAL Active) / Prisma Prepared',
+    database: db.isTurso ? 'SQLite (WAL Active) / Turso LibSQL Cloud' : 'SQLite (WAL Active) / Prisma Prepared',
   });
 });
 
 // ============================================================================
 // PART 1: PUBLIC CAREERS & MANDATES APIS (/careers)
 // ============================================================================
-app.get('/api/jobs', (req, res) => {
+app.get('/api/jobs', async (req, res) => {
   try {
     const { q, designation, location, experience } = req.query;
 
@@ -191,7 +191,7 @@ app.get('/api/jobs', (req, res) => {
     query += ` ORDER BY id ASC`;
 
     const stmt = db.prepare(query);
-    const jobs = stmt.all(...params);
+    const jobs = await stmt.all(...params);
 
     const formattedJobs = jobs.map((j) => {
       let parsedTags = [];
@@ -216,7 +216,7 @@ app.get('/api/jobs', (req, res) => {
 });
 
 // GET /api/jobs/:idOrSlug
-app.get('/api/jobs/:idOrSlug', (req, res) => {
+app.get('/api/jobs/:idOrSlug', async (req, res) => {
   try {
     const { idOrSlug } = req.params;
     const isNumeric = /^\d+$/.test(idOrSlug);
@@ -247,7 +247,7 @@ app.get('/api/jobs/:idOrSlug', (req, res) => {
           FROM jobs WHERE slug = ?
         `);
 
-    const job = isNumeric ? stmt.get(parseInt(idOrSlug, 10)) : stmt.get(idOrSlug);
+    const job = await (isNumeric ? stmt.get(parseInt(idOrSlug, 10)) : stmt.get(idOrSlug));
 
     if (!job) {
       return res.status(404).json({ error: 'Job mandate not found.' });
@@ -409,7 +409,7 @@ app.post('/api/applications', uploadDisk.single('resume'), async (req, res) => {
     }
 
     // Verify Job exists and is active
-    const targetJob = db.prepare('SELECT id, title, deadline, status FROM jobs WHERE id = ?').get(effectiveJobId);
+    const targetJob = await db.prepare('SELECT id, title, deadline, status FROM jobs WHERE id = ?').get(effectiveJobId);
     if (!targetJob) {
       if (uploadedTempPath) fs.unlink(uploadedTempPath, () => {});
       return res.status(404).json({ error: 'The selected mandate could not be found.' });
@@ -417,7 +417,7 @@ app.post('/api/applications', uploadDisk.single('resume'), async (req, res) => {
 
     // Block Duplicates (Same Email + Same Job)
     const normalizedEmail = email.trim().toLowerCase();
-    const existing = db.prepare('SELECT id, reference_no FROM applications WHERE job_id = ? AND email = ?').get(effectiveJobId, normalizedEmail);
+    const existing = await db.prepare('SELECT id, reference_no FROM applications WHERE job_id = ? AND email = ?').get(effectiveJobId, normalizedEmail);
     if (existing) {
       if (uploadedTempPath) fs.unlink(uploadedTempPath, () => {});
       return res.status(200).json({
@@ -484,7 +484,7 @@ app.post('/api/applications', uploadDisk.single('resume'), async (req, res) => {
       )
     `);
 
-    insertStmt.run(
+    await insertStmt.run(
       referenceNo,
       effectiveJobId,
       effectiveTitle,
@@ -538,7 +538,7 @@ app.post('/api/admin/login', async (req, res) => {
     }
 
     const { email, password } = validation.data;
-    const admin = db.prepare('SELECT id, name, email, password_hash, role FROM admins WHERE email = ?').get(email.toLowerCase().trim());
+    const admin = await db.prepare('SELECT id, name, email, password_hash, role FROM admins WHERE email = ?').get(email.toLowerCase().trim());
 
     if (!admin) {
       return res.status(401).json({ error: 'Invalid administrative email or password.' });
@@ -584,7 +584,7 @@ app.get('/api/admin/auth/verify', requireAdminAuth, (req, res) => {
 // ============================================================================
 // PART 2: ADMIN DASHBOARD ANALYTICS & STATS (GET /api/admin/stats)
 // ============================================================================
-app.get('/api/admin/stats', requireAdminAuth, (req, res) => {
+app.get('/api/admin/stats', requireAdminAuth, async (req, res) => {
   try {
     const { range, fromDate, toDate } = req.query;
 
@@ -603,16 +603,16 @@ app.get('/api/admin/stats', requireAdminAuth, (req, res) => {
     }
 
     // 1. KPI Cards
-    const totalApplications = db.prepare(`SELECT COUNT(id) AS count FROM applications WHERE 1=1 ${dateCondition}`).get(...dateParams).count;
-    const todayCount = db.prepare(`SELECT COUNT(id) AS count FROM applications WHERE date(created_at) = date('now')`).get().count;
-    const weekCount = db.prepare(`SELECT COUNT(id) AS count FROM applications WHERE date(created_at) >= date('now', '-7 days')`).get().count;
-    const monthCount = db.prepare(`SELECT COUNT(id) AS count FROM applications WHERE date(created_at) >= date('now', '-30 days')`).get().count;
-    const shortlistedCount = db.prepare(`SELECT COUNT(id) AS count FROM applications WHERE LOWER(status) = 'shortlisted' ${dateCondition}`).get(...dateParams).count;
-    const rejectedCount = db.prepare(`SELECT COUNT(id) AS count FROM applications WHERE LOWER(status) = 'rejected' ${dateCondition}`).get(...dateParams).count;
-    const activeMandates = db.prepare(`SELECT COUNT(id) AS count FROM jobs WHERE status = 'active'`).get().count;
+    const totalApplications = (await db.prepare(`SELECT COUNT(id) AS count FROM applications WHERE 1=1 ${dateCondition}`).get(...dateParams))?.count || 0;
+    const todayCount = (await db.prepare(`SELECT COUNT(id) AS count FROM applications WHERE date(created_at) = date('now')`).get())?.count || 0;
+    const weekCount = (await db.prepare(`SELECT COUNT(id) AS count FROM applications WHERE date(created_at) >= date('now', '-7 days')`).get())?.count || 0;
+    const monthCount = (await db.prepare(`SELECT COUNT(id) AS count FROM applications WHERE date(created_at) >= date('now', '-30 days')`).get())?.count || 0;
+    const shortlistedCount = (await db.prepare(`SELECT COUNT(id) AS count FROM applications WHERE LOWER(status) = 'shortlisted' ${dateCondition}`).get(...dateParams))?.count || 0;
+    const rejectedCount = (await db.prepare(`SELECT COUNT(id) AS count FROM applications WHERE LOWER(status) = 'rejected' ${dateCondition}`).get(...dateParams))?.count || 0;
+    const activeMandates = (await db.prepare(`SELECT COUNT(id) AS count FROM jobs WHERE status = 'active'`).get())?.count || 0;
 
     // 2. Applicants per Job (Table and Bar Chart)
-    const jobsList = db.prepare(`
+    const jobsList = await db.prepare(`
       SELECT j.id, j.title, j.designation, j.status, j.deadline,
              COUNT(a.id) AS count
       FROM jobs j
@@ -622,7 +622,7 @@ app.get('/api/admin/stats', requireAdminAuth, (req, res) => {
     `).all(...dateParams);
 
     // 3. By Function (Donut)
-    const byFunction = db.prepare(`
+    const byFunction = await db.prepare(`
       SELECT function AS name, COUNT(id) AS count
       FROM applications
       WHERE function IS NOT NULL AND function != '' ${dateCondition}
@@ -631,7 +631,7 @@ app.get('/api/admin/stats', requireAdminAuth, (req, res) => {
     `).all(...dateParams);
 
     // 4. By Industry (Donut)
-    const byIndustry = db.prepare(`
+    const byIndustry = await db.prepare(`
       SELECT industry AS name, COUNT(id) AS count
       FROM applications
       WHERE industry IS NOT NULL AND industry != '' ${dateCondition}
@@ -640,7 +640,7 @@ app.get('/api/admin/stats', requireAdminAuth, (req, res) => {
     `).all(...dateParams);
 
     // 5. By City (Top 10)
-    const byCity = db.prepare(`
+    const byCity = await db.prepare(`
       SELECT city AS name, COUNT(id) AS count
       FROM applications
       WHERE city IS NOT NULL AND city != '' ${dateCondition}
@@ -656,16 +656,16 @@ app.get('/api/admin/stats', requireAdminAuth, (req, res) => {
       { band: '5–10 yrs', min: 5.01, max: 10 },
       { band: '10+ yrs', min: 10.01, max: 99 },
     ];
-    const byExperience = expBands.map((b) => {
-      const count = db.prepare(`
+    const byExperience = await Promise.all(expBands.map(async (b) => {
+      const res = await db.prepare(`
         SELECT COUNT(id) AS count FROM applications
         WHERE experience_years >= ? AND experience_years <= ? ${dateCondition}
-      `).get(b.min, b.max, ...dateParams).count;
-      return { name: b.band, count };
-    });
+      `).get(b.min, b.max, ...dateParams);
+      return { name: b.band, count: res ? res.count : 0 };
+    }));
 
     // 7. By Gender (Pie)
-    const byGender = db.prepare(`
+    const byGender = await db.prepare(`
       SELECT gender AS name, COUNT(id) AS count
       FROM applications
       WHERE gender IS NOT NULL AND gender != '' ${dateCondition}
@@ -674,7 +674,7 @@ app.get('/api/admin/stats', requireAdminAuth, (req, res) => {
     `).all(...dateParams);
 
     // 8. Applications Over Time (Daily / Weekly / Monthly)
-    const overTime = db.prepare(`
+    const overTime = await db.prepare(`
       SELECT date(created_at) AS date, COUNT(id) AS count
       FROM applications
       WHERE created_at >= date('now', '-30 days')
@@ -682,10 +682,10 @@ app.get('/api/admin/stats', requireAdminAuth, (req, res) => {
       ORDER BY date ASC
     `).all();
 
-    const totalEnquiries = db.prepare('SELECT COUNT(id) AS count FROM enquiries').get()?.count || 0;
-    const newEnquiries = db.prepare("SELECT COUNT(id) AS count FROM enquiries WHERE LOWER(status) = 'new'").get()?.count || 0;
+    const totalEnquiries = (await db.prepare('SELECT COUNT(id) AS count FROM enquiries').get())?.count || 0;
+    const newEnquiries = (await db.prepare("SELECT COUNT(id) AS count FROM enquiries WHERE LOWER(status) = 'new'").get())?.count || 0;
 
-    const rawEnquiriesByService = db.prepare(`
+    const rawEnquiriesByService = await db.prepare(`
       SELECT 
         COALESCE(NULLIF(service, ''), 'General Advisory') AS name,
         COUNT(id) AS count
@@ -733,7 +733,7 @@ app.get('/api/admin/jobs/stats', requireAdminAuth, (req, res) => {
 // ============================================================================
 // PART 2: ADMIN APPLICATIONS MANAGEMENT
 // ============================================================================
-app.get('/api/admin/applications', requireAdminAuth, (req, res) => {
+app.get('/api/admin/applications', requireAdminAuth, async (req, res) => {
   try {
     const {
       job_id,
@@ -826,12 +826,12 @@ app.get('/api/admin/applications', requireAdminAuth, (req, res) => {
     const offset = (pageNum - 1) * limitNum;
 
     const countQuery = `SELECT COUNT(*) AS total FROM (${query})`;
-    const totalCount = db.prepare(countQuery).get(...params).total;
+    const totalCount = (await db.prepare(countQuery).get(...params))?.total || 0;
 
     query += ` LIMIT ? OFFSET ?`;
     params.push(limitNum, offset);
 
-    const rows = db.prepare(query).all(...params);
+    const rows = await db.prepare(query).all(...params);
 
     const formatted = rows.map((r) => {
       let skillsArray = [];
@@ -861,12 +861,12 @@ app.get('/api/admin/applications', requireAdminAuth, (req, res) => {
 });
 
 // Update single application status & notes
-app.patch('/api/admin/applications/:id', requireAdminAuth, (req, res) => {
+app.patch('/api/admin/applications/:id', requireAdminAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const { status, notes } = req.body;
 
-    const existing = db.prepare('SELECT id FROM applications WHERE id = ?').get(id);
+    const existing = await db.prepare('SELECT id FROM applications WHERE id = ?').get(id);
     if (!existing) {
       return res.status(404).json({ error: 'Application dossier not found.' });
     }
@@ -896,7 +896,7 @@ app.patch('/api/admin/applications/:id', requireAdminAuth, (req, res) => {
     updates.push('updated_at = CURRENT_TIMESTAMP');
     params.push(id);
 
-    db.prepare(`UPDATE applications SET ${updates.join(', ')} WHERE id = ?`).run(...params);
+    await db.prepare(`UPDATE applications SET ${updates.join(', ')} WHERE id = ?`).run(...params);
 
     return res.json({ success: true, message: 'Applicant dossier updated successfully.' });
   } catch (err) {
@@ -910,7 +910,7 @@ app.patch('/api/admin/applications/:id/status', requireAdminAuth, (req, res) => 
 });
 
 // Bulk status change
-app.post('/api/admin/applications/bulk-status', requireAdminAuth, (req, res) => {
+app.post('/api/admin/applications/bulk-status', requireAdminAuth, async (req, res) => {
   try {
     const { ids, status } = req.body;
     if (!Array.isArray(ids) || ids.length === 0 || !status) {
@@ -924,7 +924,7 @@ app.post('/api/admin/applications/bulk-status', requireAdminAuth, (req, res) => 
     }
 
     const placeholders = ids.map(() => '?').join(',');
-    db.prepare(`UPDATE applications SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id IN (${placeholders})`).run(matched, ...ids);
+    await db.prepare(`UPDATE applications SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id IN (${placeholders})`).run(matched, ...ids);
 
     return res.json({ success: true, message: `Successfully updated ${ids.length} applications to ${matched}.` });
   } catch (err) {
@@ -934,17 +934,17 @@ app.post('/api/admin/applications/bulk-status', requireAdminAuth, (req, res) => 
 });
 
 // Delete single application
-app.delete('/api/admin/applications/:id', requireAdminAuth, (req, res) => {
+app.delete('/api/admin/applications/:id', requireAdminAuth, async (req, res) => {
   try {
     const { id } = req.params;
-    const existing = db.prepare('SELECT id, reference_no, resume_path FROM applications WHERE id = ?').get(id);
+    const existing = await db.prepare('SELECT id, reference_no, resume_path FROM applications WHERE id = ?').get(id);
     if (!existing) {
       return res.status(404).json({ error: 'Candidate application not found.' });
     }
     if (existing.resume_path && fs.existsSync(existing.resume_path)) {
       try { fs.unlinkSync(existing.resume_path); } catch (e) {}
     }
-    db.prepare('DELETE FROM applications WHERE id = ?').run(id);
+    await db.prepare('DELETE FROM applications WHERE id = ?').run(id);
     return res.json({ success: true, message: `Application dossier [${existing.reference_no}] deleted successfully.` });
   } catch (err) {
     console.error('Error deleting application:', err.message);
@@ -953,20 +953,20 @@ app.delete('/api/admin/applications/:id', requireAdminAuth, (req, res) => {
 });
 
 // Bulk delete applications
-app.post('/api/admin/applications/bulk-delete', requireAdminAuth, (req, res) => {
+app.post('/api/admin/applications/bulk-delete', requireAdminAuth, async (req, res) => {
   try {
     const { ids } = req.body;
     if (!Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json({ error: 'Array of application IDs required.' });
     }
     const placeholders = ids.map(() => '?').join(',');
-    const apps = db.prepare(`SELECT resume_path FROM applications WHERE id IN (${placeholders})`).all(...ids);
+    const apps = await db.prepare(`SELECT resume_path FROM applications WHERE id IN (${placeholders})`).all(...ids);
     for (const a of apps) {
       if (a.resume_path && fs.existsSync(a.resume_path)) {
         try { fs.unlinkSync(a.resume_path); } catch (e) {}
       }
     }
-    const result = db.prepare(`DELETE FROM applications WHERE id IN (${placeholders})`).run(...ids);
+    const result = await db.prepare(`DELETE FROM applications WHERE id IN (${placeholders})`).run(...ids);
     return res.json({ success: true, message: `Successfully deleted ${result.changes} candidate application(s).` });
   } catch (err) {
     console.error('Error bulk deleting applications:', err.message);
@@ -975,7 +975,7 @@ app.post('/api/admin/applications/bulk-delete', requireAdminAuth, (req, res) => 
 });
 
 // Export applications to CSV
-app.get('/api/admin/export', requireAdminAuth, (req, res) => {
+app.get('/api/admin/export', requireAdminAuth, async (req, res) => {
   try {
     const { job_id, status, function: appFunc, city } = req.query;
 
@@ -1008,7 +1008,7 @@ app.get('/api/admin/export', requireAdminAuth, (req, res) => {
 
     query += ` ORDER BY a.id DESC`;
 
-    const rows = db.prepare(query).all(...params);
+    const rows = await db.prepare(query).all(...params);
 
     // Build CSV
     const headers = [
@@ -1045,9 +1045,9 @@ app.get('/api/admin/export', requireAdminAuth, (req, res) => {
 // ============================================================================
 // PART 2: ADMIN MANDATES CRUD (/api/admin/jobs)
 // ============================================================================
-app.get('/api/admin/jobs', requireAdminAuth, (req, res) => {
+app.get('/api/admin/jobs', requireAdminAuth, async (req, res) => {
   try {
-    const rows = db.prepare(`
+    const rows = await db.prepare(`
       SELECT j.id, j.slug, j.title, j.designation,
              COALESCE(j.engagement_type, j.employment_type) AS engagement_type,
              COALESCE(j.locations, j.location) AS locations,
@@ -1087,7 +1087,7 @@ app.get('/api/admin/jobs', requireAdminAuth, (req, res) => {
   }
 });
 
-app.post('/api/admin/jobs', requireAdminAuth, (req, res) => {
+app.post('/api/admin/jobs', requireAdminAuth, async (req, res) => {
   try {
     const {
       title,
@@ -1136,7 +1136,7 @@ app.post('/api/admin/jobs', requireAdminAuth, (req, res) => {
     let baseSlug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     let slug = baseSlug;
     let counter = 1;
-    while (db.prepare('SELECT id FROM jobs WHERE slug = ?').get(slug)) {
+    while (await db.prepare('SELECT id FROM jobs WHERE slug = ?').get(slug)) {
       slug = `${baseSlug}-${counter++}`;
     }
 
@@ -1152,7 +1152,7 @@ app.post('/api/admin/jobs', requireAdminAuth, (req, res) => {
       )
     `);
 
-    const result = stmt.run(
+    const result = await stmt.run(
       slug,
       sanitizeText(title),
       sanitizeText(designation),
@@ -1172,7 +1172,7 @@ app.post('/api/admin/jobs', requireAdminAuth, (req, res) => {
       ['active', 'draft', 'closed'].includes(status) ? status : 'active'
     );
 
-    const created = db.prepare('SELECT * FROM jobs WHERE id = ?').get(result.lastInsertRowid);
+    const created = await db.prepare('SELECT * FROM jobs WHERE id = ?').get(result.lastInsertRowid);
     return res.status(201).json({ success: true, message: 'Mandate successfully created and published.', job: created });
   } catch (err) {
     console.error('Error creating job:', err.message);
@@ -1180,10 +1180,10 @@ app.post('/api/admin/jobs', requireAdminAuth, (req, res) => {
   }
 });
 
-app.put('/api/admin/jobs/:id', requireAdminAuth, (req, res) => {
+app.put('/api/admin/jobs/:id', requireAdminAuth, async (req, res) => {
   try {
     const { id } = req.params;
-    const existing = db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
+    const existing = await db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
     if (!existing) {
       return res.status(404).json({ error: 'Job mandate not found.' });
     }
@@ -1222,7 +1222,7 @@ app.put('/api/admin/jobs/:id', requireAdminAuth, (req, res) => {
       }
     }
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE jobs SET
         title = ?, designation = ?, employment_type = ?, engagement_type = ?,
         location = ?, locations = ?, experience_text = ?,
@@ -1250,7 +1250,7 @@ app.put('/api/admin/jobs/:id', requireAdminAuth, (req, res) => {
       id
     );
 
-    const updated = db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
+    const updated = await db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
     return res.json({ success: true, message: 'Mandate updated successfully.', job: updated });
   } catch (err) {
     console.error('Error updating job:', err.message);
@@ -1258,17 +1258,17 @@ app.put('/api/admin/jobs/:id', requireAdminAuth, (req, res) => {
   }
 });
 
-app.delete('/api/admin/jobs/:id', requireAdminAuth, (req, res) => {
+app.delete('/api/admin/jobs/:id', requireAdminAuth, async (req, res) => {
   try {
     const { id } = req.params;
-    const existing = db.prepare('SELECT id FROM jobs WHERE id = ?').get(id);
+    const existing = await db.prepare('SELECT id FROM jobs WHERE id = ?').get(id);
     if (!existing) {
       return res.status(404).json({ error: 'Job mandate not found.' });
     }
 
-    const appCount = db.prepare('SELECT COUNT(id) AS count FROM applications WHERE job_id = ?').get(id);
+    const appCount = await db.prepare('SELECT COUNT(id) AS count FROM applications WHERE job_id = ?').get(id);
     if (appCount && appCount.count > 0) {
-      db.prepare(`UPDATE jobs SET status = 'closed', updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(id);
+      await db.prepare(`UPDATE jobs SET status = 'closed', updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(id);
       return res.json({
         success: true,
         archived: true,
@@ -1276,7 +1276,7 @@ app.delete('/api/admin/jobs/:id', requireAdminAuth, (req, res) => {
       });
     }
 
-    db.prepare('DELETE FROM jobs WHERE id = ?').run(id);
+    await db.prepare('DELETE FROM jobs WHERE id = ?').run(id);
     return res.json({ success: true, message: 'Mandate permanently removed.' });
   } catch (err) {
     console.error('Error deleting job:', err.message);
@@ -1325,7 +1325,7 @@ function checkEnquiryRateLimit(ip) {
 }
 
 // 1. Public Services API (/api/services)
-app.get('/api/services', (req, res) => {
+app.get('/api/services', async (req, res) => {
   try {
     const { line } = req.query;
     let query = 'SELECT * FROM services WHERE active = 1';
@@ -1335,7 +1335,7 @@ app.get('/api/services', (req, res) => {
       params.push(line.trim());
     }
     query += ' ORDER BY order_index ASC, id ASC';
-    const services = db.prepare(query).all(...params);
+    const services = await db.prepare(query).all(...params);
     return res.json({ success: true, services });
   } catch (err) {
     console.error('Error fetching public services:', err.message);
@@ -1344,9 +1344,9 @@ app.get('/api/services', (req, res) => {
 });
 
 // 2. Admin Services CRUD
-app.get('/api/admin/services', requireAdminAuth, (req, res) => {
+app.get('/api/admin/services', requireAdminAuth, async (req, res) => {
   try {
-    const services = db.prepare('SELECT * FROM services ORDER BY line ASC, order_index ASC').all();
+    const services = await db.prepare('SELECT * FROM services ORDER BY line ASC, order_index ASC').all();
     return res.json({ success: true, services });
   } catch (err) {
     console.error('Error fetching admin services:', err.message);
@@ -1354,19 +1354,19 @@ app.get('/api/admin/services', requireAdminAuth, (req, res) => {
   }
 });
 
-app.post('/api/admin/services', requireAdminAuth, (req, res) => {
+app.post('/api/admin/services', requireAdminAuth, async (req, res) => {
   try {
     const { id, line, title, description, icon, order_index, active } = req.body;
     if (!title || !description || !line) {
       return res.status(400).json({ error: 'Title, description, and service line are required.' });
     }
     const serviceId = (id || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')).trim();
-    const existing = db.prepare('SELECT id FROM services WHERE id = ?').get(serviceId);
+    const existing = await db.prepare('SELECT id FROM services WHERE id = ?').get(serviceId);
     if (existing) {
       return res.status(409).json({ error: 'A service with this ID or slug already exists.' });
     }
 
-    db.prepare(`
+    await db.prepare(`
       INSERT INTO services (id, line, title, description, icon, order_index, active)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `).run(
@@ -1379,7 +1379,7 @@ app.post('/api/admin/services', requireAdminAuth, (req, res) => {
       active === undefined || active === 1 || active === true ? 1 : 0
     );
 
-    const created = db.prepare('SELECT * FROM services WHERE id = ?').get(serviceId);
+    const created = await db.prepare('SELECT * FROM services WHERE id = ?').get(serviceId);
     return res.status(201).json({ success: true, service: created });
   } catch (err) {
     console.error('Error creating service:', err.message);
@@ -1387,16 +1387,16 @@ app.post('/api/admin/services', requireAdminAuth, (req, res) => {
   }
 });
 
-app.put('/api/admin/services/:id', requireAdminAuth, (req, res) => {
+app.put('/api/admin/services/:id', requireAdminAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const { line, title, description, icon, order_index, active } = req.body;
-    const existing = db.prepare('SELECT id FROM services WHERE id = ?').get(id);
+    const existing = await db.prepare('SELECT id FROM services WHERE id = ?').get(id);
     if (!existing) {
       return res.status(404).json({ error: 'Service not found.' });
     }
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE services
       SET line = COALESCE(?, line),
           title = COALESCE(?, title),
@@ -1416,7 +1416,7 @@ app.put('/api/admin/services/:id', requireAdminAuth, (req, res) => {
       id
     );
 
-    const updated = db.prepare('SELECT * FROM services WHERE id = ?').get(id);
+    const updated = await db.prepare('SELECT * FROM services WHERE id = ?').get(id);
     return res.json({ success: true, service: updated, message: 'Service updated successfully.' });
   } catch (err) {
     console.error('Error updating service:', err.message);
@@ -1424,14 +1424,14 @@ app.put('/api/admin/services/:id', requireAdminAuth, (req, res) => {
   }
 });
 
-app.delete('/api/admin/services/:id', requireAdminAuth, (req, res) => {
+app.delete('/api/admin/services/:id', requireAdminAuth, async (req, res) => {
   try {
     const { id } = req.params;
-    const existing = db.prepare('SELECT id FROM services WHERE id = ?').get(id);
+    const existing = await db.prepare('SELECT id FROM services WHERE id = ?').get(id);
     if (!existing) {
       return res.status(404).json({ error: 'Service not found.' });
     }
-    db.prepare('DELETE FROM services WHERE id = ?').run(id);
+    await db.prepare('DELETE FROM services WHERE id = ?').run(id);
     return res.json({ success: true, message: 'Service removed successfully.' });
   } catch (err) {
     console.error('Error deleting service:', err.message);
@@ -1570,7 +1570,7 @@ app.get('/api/admin/enquiries/export', (req, res, next) => {
 });
 
 // 4. Admin Enquiries List
-app.get('/api/admin/enquiries', requireAdminAuth, (req, res) => {
+app.get('/api/admin/enquiries', requireAdminAuth, async (req, res) => {
   try {
     const { status, service, line, q, page = 1, limit = 50 } = req.query;
 
@@ -1600,7 +1600,7 @@ app.get('/api/admin/enquiries', requireAdminAuth, (req, res) => {
     }
 
     const countSql = query.replace(/SELECT[\s\S]+?FROM enquiries/, 'SELECT COUNT(*) as total FROM enquiries');
-    const totalRow = db.prepare(countSql).get(...params);
+    const totalRow = await db.prepare(countSql).get(...params);
     const total = totalRow ? totalRow.total : 0;
 
     query += ` ORDER BY id DESC`;
@@ -1612,7 +1612,7 @@ app.get('/api/admin/enquiries', requireAdminAuth, (req, res) => {
     query += ` LIMIT ? OFFSET ?`;
     params.push(limitNum, offset);
 
-    const enquiries = db.prepare(query).all(...params);
+    const enquiries = await db.prepare(query).all(...params);
 
     return res.json({
       success: true,
@@ -1628,18 +1628,18 @@ app.get('/api/admin/enquiries', requireAdminAuth, (req, res) => {
 });
 
 // 5. Admin Enquiry Status Update
-app.patch('/api/admin/enquiries/:id', requireAdminAuth, (req, res) => {
+app.patch('/api/admin/enquiries/:id', requireAdminAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
 
-    const existing = db.prepare('SELECT id FROM enquiries WHERE id = ?').get(id);
+    const existing = await db.prepare('SELECT id FROM enquiries WHERE id = ?').get(id);
     if (!existing) {
       return res.status(404).json({ error: 'Enquiry not found.' });
     }
 
     if (status) {
-      db.prepare(`UPDATE enquiries SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(status, id);
+      await db.prepare(`UPDATE enquiries SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(status, id);
     }
 
     return res.json({ success: true, message: 'Enquiry status updated successfully.' });
@@ -1650,14 +1650,14 @@ app.patch('/api/admin/enquiries/:id', requireAdminAuth, (req, res) => {
 });
 
 // Delete single enquiry
-app.delete('/api/admin/enquiries/:id', requireAdminAuth, (req, res) => {
+app.delete('/api/admin/enquiries/:id', requireAdminAuth, async (req, res) => {
   try {
     const { id } = req.params;
-    const existing = db.prepare('SELECT id, reference_no FROM enquiries WHERE id = ?').get(id);
+    const existing = await db.prepare('SELECT id, reference_no FROM enquiries WHERE id = ?').get(id);
     if (!existing) {
       return res.status(404).json({ error: 'Enquiry record not found.' });
     }
-    db.prepare('DELETE FROM enquiries WHERE id = ?').run(id);
+    await db.prepare('DELETE FROM enquiries WHERE id = ?').run(id);
     return res.json({ success: true, message: `Enquiry [${existing.reference_no}] deleted successfully.` });
   } catch (err) {
     console.error('Error deleting enquiry:', err.message);
@@ -1666,14 +1666,14 @@ app.delete('/api/admin/enquiries/:id', requireAdminAuth, (req, res) => {
 });
 
 // Bulk delete enquiries
-app.post('/api/admin/enquiries/bulk-delete', requireAdminAuth, (req, res) => {
+app.post('/api/admin/enquiries/bulk-delete', requireAdminAuth, async (req, res) => {
   try {
     const { ids } = req.body;
     if (!Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json({ error: 'Array of enquiry IDs required.' });
     }
     const placeholders = ids.map(() => '?').join(',');
-    const result = db.prepare(`DELETE FROM enquiries WHERE id IN (${placeholders})`).run(...ids);
+    const result = await db.prepare(`DELETE FROM enquiries WHERE id IN (${placeholders})`).run(...ids);
     return res.json({ success: true, message: `Successfully deleted ${result.changes} enquiry record(s).` });
   } catch (err) {
     console.error('Error bulk deleting enquiries:', err.message);
@@ -1751,13 +1751,13 @@ app.post('/api/enquiries', async (req, res) => {
 
     // Lookup service in database if serviceId or serviceTitle is provided
     if (serviceId) {
-      const match = db.prepare('SELECT title, line FROM services WHERE id = ?').get(serviceId);
+      const match = await db.prepare('SELECT title, line FROM services WHERE id = ?').get(serviceId);
       if (match) {
         serviceTitle = match.title;
         serviceLine = match.line;
       }
     } else {
-      const match = db.prepare('SELECT id, title, line FROM services WHERE LOWER(title) = LOWER(?)').get(serviceTitle);
+      const match = await db.prepare('SELECT id, title, line FROM services WHERE LOWER(title) = LOWER(?)').get(serviceTitle);
       if (match) {
         serviceId = match.id;
         serviceTitle = match.title;
@@ -1773,7 +1773,7 @@ app.post('/api/enquiries', async (req, res) => {
 
     const refNo = generateRefNo('ENQ');
 
-    db.prepare(`
+    await db.prepare(`
       INSERT INTO enquiries (
         reference_no, full_name, email, phone_e164, company_name, designation,
         service, service_id, service_line, company_location, requirements, industry,
@@ -1815,9 +1815,9 @@ app.post('/api/enquiries', async (req, res) => {
 // ============================================================================
 
 // Public GET: Fetch all active site content overrides
-app.get('/api/content', (req, res) => {
+app.get('/api/content', async (req, res) => {
   try {
-    const rows = db.prepare('SELECT page_key, content_json, updated_at FROM site_content').all();
+    const rows = await db.prepare('SELECT page_key, content_json, updated_at FROM site_content').all();
     const content = {};
     for (const r of rows) {
       try {
@@ -1834,9 +1834,9 @@ app.get('/api/content', (req, res) => {
 });
 
 // Public GET: Fetch single page content
-app.get('/api/content/:pageKey', (req, res) => {
+app.get('/api/content/:pageKey', async (req, res) => {
   try {
-    const row = db.prepare('SELECT page_key, content_json, updated_at FROM site_content WHERE page_key = ?').get(req.params.pageKey);
+    const row = await db.prepare('SELECT page_key, content_json, updated_at FROM site_content WHERE page_key = ?').get(req.params.pageKey);
     if (!row) {
       return res.json({ success: true, pageKey: req.params.pageKey, content: null });
     }
@@ -1853,7 +1853,7 @@ app.get('/api/content/:pageKey', (req, res) => {
 });
 
 // Admin PUT: Update single page content
-app.put('/api/content/:pageKey', requireAdminAuth, (req, res) => {
+app.put('/api/content/:pageKey', requireAdminAuth, async (req, res) => {
   try {
     const pageKey = req.params.pageKey;
     const incoming = req.body.content !== undefined ? req.body.content : req.body;
@@ -1863,7 +1863,7 @@ app.put('/api/content/:pageKey', requireAdminAuth, (req, res) => {
 
     const contentJson = JSON.stringify(incoming);
 
-    db.prepare(`
+    await db.prepare(`
       INSERT INTO site_content (page_key, content_json, updated_at)
       VALUES (?, ?, CURRENT_TIMESTAMP)
       ON CONFLICT(page_key) DO UPDATE SET
@@ -1883,7 +1883,7 @@ app.put('/api/content/:pageKey', requireAdminAuth, (req, res) => {
 });
 
 // Admin POST: Batch save multiple pages
-app.post('/api/content/batch', requireAdminAuth, (req, res) => {
+app.post('/api/content/batch', requireAdminAuth, async (req, res) => {
   try {
     const pages = req.body.pages;
     if (!pages || typeof pages !== 'object') {
@@ -1898,13 +1898,9 @@ app.post('/api/content/batch', requireAdminAuth, (req, res) => {
         updated_at = CURRENT_TIMESTAMP
     `);
 
-    const runBatch = db.transaction((pageEntries) => {
-      for (const [key, val] of Object.entries(pageEntries)) {
-        upsertStmt.run(key, JSON.stringify(val));
-      }
-    });
-
-    runBatch(pages);
+    for (const [key, val] of Object.entries(pages)) {
+      await upsertStmt.run(key, JSON.stringify(val));
+    }
 
     return res.json({
       success: true,
@@ -1917,10 +1913,10 @@ app.post('/api/content/batch', requireAdminAuth, (req, res) => {
 });
 
 // Admin POST: Reset page content to default
-app.post('/api/content/reset/:pageKey', requireAdminAuth, (req, res) => {
+app.post('/api/content/reset/:pageKey', requireAdminAuth, async (req, res) => {
   try {
     const pageKey = req.params.pageKey;
-    db.prepare('DELETE FROM site_content WHERE page_key = ?').run(pageKey);
+    await db.prepare('DELETE FROM site_content WHERE page_key = ?').run(pageKey);
     return res.json({
       success: true,
       pageKey,
@@ -1946,6 +1942,10 @@ if (fs.existsSync(distDir)) {
   });
 }
 
-app.listen(PORT, () => {
-  console.log(`[TECHORA BACKEND] Operational on port ${PORT}`);
-});
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`[TECHORA BACKEND] Operational on port ${PORT}`);
+  });
+}
+
+export default app;
