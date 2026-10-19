@@ -417,17 +417,41 @@ export default function AdminDashboard() {
     enquiriesPage,
   ]);
 
+  const activateDemoSession = () => {
+    const demoToken = 'techora_demo_jwt_session_' + Date.now();
+    const demoUser = {
+      id: 1,
+      name: 'TECHORA Managing Director',
+      email: 'admin@techora.consulting',
+      role: 'superadmin',
+    };
+    setToken(demoToken);
+    setAdminUser(demoUser);
+    localStorage.setItem('techora_admin_jwt', demoToken);
+    localStorage.setItem('techora_admin_user', JSON.stringify(demoUser));
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoginError('');
     setLoginLoading(true);
+
+    const isDemo =
+      loginEmail.trim().toLowerCase() === 'admin@techora.consulting' &&
+      loginPassword === 'Admin@123';
+
+    // Fast 1.2s timeout so the user never hangs waiting for an unreachable backend
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 1200);
 
     try {
       const res = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: loginEmail, password: loginPassword }),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
 
       const contentType = res.headers.get('content-type') || '';
       if (contentType.includes('application/json')) {
@@ -445,25 +469,13 @@ export default function AdminDashboard() {
       }
       throw new Error('Non-JSON response from server');
     } catch (err) {
+      clearTimeout(timeoutId);
       // Offline / Vercel Static Fallback for Demo Admin Credentials:
-      if (
-        loginEmail.trim().toLowerCase() === 'admin@techora.consulting' &&
-        loginPassword === 'Admin@123'
-      ) {
-        const demoToken = 'techora_demo_jwt_session_' + Date.now();
-        const demoUser = {
-          id: 1,
-          name: 'TECHORA Managing Director',
-          email: 'admin@techora.consulting',
-          role: 'superadmin',
-        };
-        setToken(demoToken);
-        setAdminUser(demoUser);
-        localStorage.setItem('techora_admin_jwt', demoToken);
-        localStorage.setItem('techora_admin_user', JSON.stringify(demoUser));
+      if (isDemo) {
+        activateDemoSession();
         return;
       }
-      setLoginError('Network error connecting to administrative service. Please verify server connection.');
+      setLoginError('Authentication service unreachable. Please verify server connection.');
     } finally {
       setLoginLoading(false);
     }
@@ -1341,27 +1353,51 @@ export default function AdminDashboard() {
             <div style={{ fontSize: '0.72rem', color: 'rgba(255, 255, 255, 0.6)', marginBottom: '8px' }}>
               DEMO CREDENTIALS: <strong style={{ color: '#E2E8F0' }}>admin@techora.consulting</strong> &bull; <strong style={{ color: '#E2E8F0' }}>Admin@123</strong>
             </div>
-            <button
-              type="button"
-              onClick={handleFillDemoCredentials}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                backgroundColor: 'rgba(47, 164, 231, 0.15)',
-                border: '1px solid rgba(47, 164, 231, 0.35)',
-                color: 'var(--sky-400)',
-                padding: '6px 14px',
-                borderRadius: '6px',
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <KeyRound size={13} />
-              <span>Click to Auto-fill Demo Credentials</span>
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={activateDemoSession}
+                style={{
+                  width: '100%',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                  border: '1px solid rgba(16, 185, 129, 0.5)',
+                  color: '#6EE7B7',
+                  padding: '9px 16px',
+                  borderRadius: '6px',
+                  fontSize: '0.8125rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  boxShadow: '0 2px 8px rgba(16, 185, 129, 0.15)',
+                }}
+              >
+                <Sparkles size={15} color="#6EE7B7" />
+                <span>⚡ Direct Console Entry (Instant Access)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleFillDemoCredentials}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'none',
+                  border: 'none',
+                  color: 'rgba(255, 255, 255, 0.6)',
+                  padding: '4px 8px',
+                  fontSize: '0.72rem',
+                  cursor: 'pointer',
+                }}
+              >
+                <KeyRound size={12} />
+                <span>Auto-fill form inputs instead</span>
+              </button>
+            </div>
           </div>
 
           {/* Return to website */}
