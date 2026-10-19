@@ -69,7 +69,21 @@ export function SiteContentProvider({ children }) {
     }
   }, []);
 
-  // Listen for storage events and in-app sync events
+  // 1. Initial server fetch on mount
+  useEffect(() => {
+    fetchRemoteContent();
+  }, [fetchRemoteContent]);
+
+  // 2. Auto re-sync whenever user focuses or switches back to this tab
+  useEffect(() => {
+    const onFocus = () => {
+      fetchRemoteContent();
+    };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [fetchRemoteContent]);
+
+  // 3. Listen for storage events, in-app events, and BroadcastChannel across tabs
   useEffect(() => {
     const handleSync = () => {
       try {
@@ -83,9 +97,25 @@ export function SiteContentProvider({ children }) {
 
     window.addEventListener('storage', handleSync);
     window.addEventListener('techora_content_changed', handleSync);
+
+    let channel = null;
+    try {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        channel = new BroadcastChannel('techora_site_content_sync');
+        channel.onmessage = () => {
+          handleSync();
+        };
+      }
+    } catch (e) {}
+
     return () => {
       window.removeEventListener('storage', handleSync);
       window.removeEventListener('techora_content_changed', handleSync);
+      if (channel) {
+        try {
+          channel.close();
+        } catch (e) {}
+      }
     };
   }, []);
 
@@ -103,6 +133,12 @@ export function SiteContentProvider({ children }) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(savedMap));
         // Notify all components in the active window
         window.dispatchEvent(new CustomEvent('techora_content_changed', { detail: { pageKey } }));
+        // Broadcast to all other open tabs/windows
+        if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+          const ch = new BroadcastChannel('techora_site_content_sync');
+          ch.postMessage({ type: 'SYNC', pageKey });
+          ch.close();
+        }
       } catch (err) {}
       return updated;
     });
@@ -141,6 +177,12 @@ export function SiteContentProvider({ children }) {
         const savedMap = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
         delete savedMap[pageKey];
         localStorage.setItem(STORAGE_KEY, JSON.stringify(savedMap));
+        window.dispatchEvent(new CustomEvent('techora_content_changed', { detail: { pageKey } }));
+        if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+          const ch = new BroadcastChannel('techora_site_content_sync');
+          ch.postMessage({ type: 'SYNC', pageKey });
+          ch.close();
+        }
       } catch (err) {}
       return updated;
     });
