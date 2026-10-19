@@ -1093,7 +1093,7 @@ export default function AdminDashboard() {
           width: '100%',
           maxWidth: '100vw',
           overflowX: 'hidden',
-          background: 'radial-gradient(ellipse at 50% 20%, #0d2847 0%, #061426 55%, #030811 100%)',
+          background: 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 50%, #E2E8F0 100%)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -1106,14 +1106,14 @@ export default function AdminDashboard() {
           aria-hidden="true"
           style={{
             position: 'absolute',
-            top: '10%',
+            top: '8%',
             left: '50%',
             transform: 'translateX(-50%)',
-            width: '600px',
-            maxWidth: '90vw',
-            height: '350px',
-            background: 'radial-gradient(circle, rgba(15, 127, 196, 0.18) 0%, transparent 70%)',
-            filter: 'blur(40px)',
+            width: '650px',
+            maxWidth: '92vw',
+            height: '360px',
+            background: 'radial-gradient(circle, rgba(2, 132, 199, 0.1) 0%, rgba(99, 102, 241, 0.04) 50%, transparent 75%)',
+            filter: 'blur(50px)',
             pointerEvents: 'none',
           }}
         />
@@ -1123,18 +1123,16 @@ export default function AdminDashboard() {
             position: 'relative',
             width: '100%',
             maxWidth: '460px',
-            background: 'rgba(9, 23, 40, 0.88)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
+            backgroundColor: '#FFFFFF',
             borderRadius: '16px',
-            border: '1px solid rgba(47, 164, 231, 0.28)',
-            boxShadow: '0 24px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(15, 127, 196, 0.12)',
+            border: '1px solid #E2E8F0',
+            boxShadow: '0 20px 45px -10px rgba(15, 23, 42, 0.12), 0 0 1px 1px rgba(15, 23, 42, 0.04)',
             padding: '38px 32px',
             boxSizing: 'border-box',
           }}
         >
           {/* Executive Security Badge */}
-          <div style={{ textAlign: 'center', marginBottom: '18px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '20px' }}>
             <div
               style={{
                 display: 'inline-flex',
@@ -1142,16 +1140,16 @@ export default function AdminDashboard() {
                 gap: '6px',
                 padding: '4px 12px',
                 borderRadius: '100px',
-                backgroundColor: 'rgba(15, 127, 196, 0.14)',
-                border: '1px solid rgba(15, 127, 196, 0.35)',
-                color: 'var(--sky-400)',
+                backgroundColor: '#F0F9FF',
+                border: '1px solid #BAE6FD',
+                color: '#0369A1',
                 fontSize: '0.72rem',
-                fontWeight: 600,
-                letterSpacing: '0.08em',
+                fontWeight: 700,
+                letterSpacing: '0.06em',
                 textTransform: 'uppercase',
               }}
             >
-              <ShieldCheck size={14} color="var(--sky-400)" />
+              <ShieldCheck size={14} color="#0284C7" />
               <span>256-Bit TLS Audit Secured</span>
             </div>
           </div>
@@ -1163,17 +1161,17 @@ export default function AdminDashboard() {
                 style={{
                   width: '10px',
                   height: '10px',
-                  backgroundColor: 'var(--sky-500)',
+                  backgroundColor: '#0284C7',
                   borderRadius: '2px',
-                  boxShadow: '0 0 10px rgba(47, 164, 231, 0.8)',
+                  boxShadow: '0 0 10px rgba(2, 132, 199, 0.5)',
                 }}
               />
               <h1
                 style={{
                   fontFamily: 'var(--font-heading)',
-                  fontSize: '1.6rem',
+                  fontSize: '1.75rem',
                   fontWeight: 800,
-                  color: 'var(--white)',
+                  color: '#0F172A',
                   margin: 0,
                   letterSpacing: '0.04em',
                 }}
@@ -1188,12 +1186,12 @@ export default function AdminDashboard() {
                 fontWeight: 700,
                 textTransform: 'uppercase',
                 letterSpacing: '0.22em',
-                color: 'var(--sky-400)',
+                color: '#0284C7',
               }}
             >
               Consultant
             </div>
-            <div style={{ fontSize: '0.8125rem', color: 'rgba(255, 255, 255, 0.72)', marginTop: '8px' }}>
+            <div style={{ fontSize: '0.84rem', color: '#64748B', marginTop: '6px', fontWeight: 500 }}>
               Executive ATS &amp; Fiduciary Console
             </div>
           </div>
@@ -1201,19 +1199,20 @@ export default function AdminDashboard() {
           {loginError && (
             <div
               style={{
-                backgroundColor: 'rgba(239, 68, 68, 0.15)',
-                border: '1px solid rgba(239, 68, 68, 0.4)',
+                backgroundColor: '#FEF2F2',
+                border: '1px solid #FECACA',
                 borderRadius: '8px',
                 padding: '10px 14px',
-                color: '#FCA5A5',
+                color: '#DC2626',
                 fontSize: '0.8125rem',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
                 marginBottom: '20px',
+                fontWeight: 500,
               }}
             >
-              <AlertCircle size={16} />
+              <AlertCircle size={16} color="#DC2626" />
               <span>{loginError}</span>
             </div>
           )}
@@ -1223,11 +1222,12 @@ export default function AdminDashboard() {
               <label
                 style={{
                   display: 'block',
-                  fontSize: '0.78rem',
-                  fontWeight: 600,
-                  color: 'rgba(255, 255, 255, 0.85)',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  color: '#334155',
                   marginBottom: '6px',
-                  letterSpacing: '0.02em',
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase',
                 }}
               >
                 ADMINISTRATIVE EMAIL
@@ -1235,7 +1235,7 @@ export default function AdminDashboard() {
               <div style={{ position: 'relative' }}>
                 <Mail
                   size={16}
-                  color="rgba(255, 255, 255, 0.5)"
+                  color="#94A3B8"
                   style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }}
                 />
                 <input
@@ -1251,15 +1251,23 @@ export default function AdminDashboard() {
                     paddingRight: '12px',
                     fontSize: '0.875rem',
                     borderRadius: '8px',
-                    border: '1px solid rgba(255, 255, 255, 0.16)',
+                    border: '1px solid #CBD5E1',
                     outline: 'none',
-                    backgroundColor: 'rgba(15, 23, 42, 0.8)',
-                    color: 'var(--white)',
+                    backgroundColor: '#F8FAFC',
+                    color: '#0F172A',
                     boxSizing: 'border-box',
-                    transition: 'border-color 0.15s ease',
+                    transition: 'all 0.15s ease',
                   }}
-                  onFocus={(e) => (e.target.style.borderColor = 'var(--sky-500)')}
-                  onBlur={(e) => (e.target.style.borderColor = 'rgba(255, 255, 255, 0.16)')}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#0284C7';
+                    e.target.style.backgroundColor = '#FFFFFF';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(2, 132, 199, 0.12)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#CBD5E1';
+                    e.target.style.backgroundColor = '#F8FAFC';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 />
               </div>
             </div>
@@ -1268,11 +1276,12 @@ export default function AdminDashboard() {
               <label
                 style={{
                   display: 'block',
-                  fontSize: '0.78rem',
-                  fontWeight: 600,
-                  color: 'rgba(255, 255, 255, 0.85)',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  color: '#334155',
                   marginBottom: '6px',
-                  letterSpacing: '0.02em',
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase',
                 }}
               >
                 SECURITY PASSWORD
@@ -1280,14 +1289,14 @@ export default function AdminDashboard() {
               <div style={{ position: 'relative' }}>
                 <Lock
                   size={16}
-                  color="rgba(255, 255, 255, 0.5)"
+                  color="#94A3B8"
                   style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }}
                 />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}
-                  placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"
+                  placeholder="••••••••"
                   required
                   style={{
                     width: '100%',
@@ -1296,15 +1305,23 @@ export default function AdminDashboard() {
                     paddingRight: '40px',
                     fontSize: '0.875rem',
                     borderRadius: '8px',
-                    border: '1px solid rgba(255, 255, 255, 0.16)',
+                    border: '1px solid #CBD5E1',
                     outline: 'none',
-                    backgroundColor: 'rgba(15, 23, 42, 0.8)',
-                    color: 'var(--white)',
+                    backgroundColor: '#F8FAFC',
+                    color: '#0F172A',
                     boxSizing: 'border-box',
-                    transition: 'border-color 0.15s ease',
+                    transition: 'all 0.15s ease',
                   }}
-                  onFocus={(e) => (e.target.style.borderColor = 'var(--sky-500)')}
-                  onBlur={(e) => (e.target.style.borderColor = 'rgba(255, 255, 255, 0.16)')}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#0284C7';
+                    e.target.style.backgroundColor = '#FFFFFF';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(2, 132, 199, 0.12)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#CBD5E1';
+                    e.target.style.backgroundColor = '#F8FAFC';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 />
                 <button
                   type="button"
@@ -1319,7 +1336,7 @@ export default function AdminDashboard() {
                     border: 'none',
                     padding: '4px',
                     cursor: 'pointer',
-                    color: 'rgba(255, 255, 255, 0.6)',
+                    color: '#64748B',
                     display: 'flex',
                     alignItems: 'center',
                   }}
@@ -1337,8 +1354,8 @@ export default function AdminDashboard() {
                 padding: '13px 20px',
                 fontSize: '0.9375rem',
                 fontWeight: 700,
-                color: 'var(--white)',
-                background: 'linear-gradient(135deg, #0F7FC4 0%, #0284C7 100%)',
+                color: '#FFFFFF',
+                background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
                 border: 'none',
                 borderRadius: '8px',
                 cursor: loginLoading ? 'not-allowed' : 'pointer',
@@ -1346,7 +1363,7 @@ export default function AdminDashboard() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
-                boxShadow: '0 4px 16px rgba(15, 127, 196, 0.4)',
+                boxShadow: '0 4px 14px rgba(2, 132, 199, 0.35)',
                 transition: 'all 0.2s ease',
               }}
             >
@@ -1360,14 +1377,14 @@ export default function AdminDashboard() {
             style={{
               marginTop: '22px',
               padding: '14px',
-              backgroundColor: 'rgba(15, 23, 42, 0.6)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
+              backgroundColor: '#F8FAFC',
+              border: '1px solid #E2E8F0',
               borderRadius: '8px',
               textAlign: 'center',
             }}
           >
-            <div style={{ fontSize: '0.72rem', color: 'rgba(255, 255, 255, 0.6)', marginBottom: '8px' }}>
-              DEMO CREDENTIALS: <strong style={{ color: '#E2E8F0' }}>admin@techora.consulting</strong> &bull; <strong style={{ color: '#E2E8F0' }}>Admin@123</strong>
+            <div style={{ fontSize: '0.75rem', color: '#64748B', marginBottom: '8px' }}>
+              DEMO CREDENTIALS: <strong style={{ color: '#0F172A' }}>admin@techora.consulting</strong> &bull; <strong style={{ color: '#0F172A' }}>Admin@123</strong>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center' }}>
               <button
@@ -1379,19 +1396,19 @@ export default function AdminDashboard() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '8px',
-                  backgroundColor: 'rgba(16, 185, 129, 0.2)',
-                  border: '1px solid rgba(16, 185, 129, 0.5)',
-                  color: '#6EE7B7',
+                  backgroundColor: '#ECFDF5',
+                  border: '1px solid #A7F3D0',
+                  color: '#065F46',
                   padding: '9px 16px',
                   borderRadius: '6px',
                   fontSize: '0.8125rem',
                   fontWeight: 700,
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
-                  boxShadow: '0 2px 8px rgba(16, 185, 129, 0.15)',
+                  boxShadow: '0 2px 6px rgba(16, 185, 129, 0.1)',
                 }}
               >
-                <Sparkles size={15} color="#6EE7B7" />
+                <Sparkles size={15} color="#059669" />
                 <span>⚡ Direct Console Entry (Instant Access)</span>
               </button>
 
@@ -1404,13 +1421,14 @@ export default function AdminDashboard() {
                   gap: '6px',
                   background: 'none',
                   border: 'none',
-                  color: 'rgba(255, 255, 255, 0.6)',
+                  color: '#64748B',
                   padding: '4px 8px',
-                  fontSize: '0.72rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 500,
                   cursor: 'pointer',
                 }}
               >
-                <KeyRound size={12} />
+                <KeyRound size={13} color="#64748B" />
                 <span>Auto-fill form inputs instead</span>
               </button>
             </div>
@@ -1424,13 +1442,14 @@ export default function AdminDashboard() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                color: 'rgba(255, 255, 255, 0.6)',
-                fontSize: '0.78rem',
+                color: '#64748B',
+                fontSize: '0.8125rem',
+                fontWeight: 500,
                 textDecoration: 'none',
                 transition: 'color 0.15s ease',
               }}
-              onMouseEnter={(e) => (e.target.style.color = 'var(--sky-400)')}
-              onMouseLeave={(e) => (e.target.style.color = 'rgba(255, 255, 255, 0.6)')}
+              onMouseEnter={(e) => (e.target.style.color = '#0284C7')}
+              onMouseLeave={(e) => (e.target.style.color = '#64748B')}
             >
               <ChevronLeft size={14} />
               <span>Back to Techora Home Page</span>
