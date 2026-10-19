@@ -1828,7 +1828,7 @@ export default function AdminDashboard() {
         <div
           style={{
             flex: 1,
-            padding: '24px 28px',
+            padding: '20px 24px',
             overflowY: 'auto',
             overflowX: 'hidden',
             width: '100%',
@@ -1845,9 +1845,9 @@ export default function AdminDashboard() {
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',
-                  gap: '16px',
-                  marginBottom: '28px',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 128px), 1fr))',
+                  gap: '12px',
+                  marginBottom: '22px',
                   width: '100%',
                 }}
               >
@@ -1871,7 +1871,7 @@ export default function AdminDashboard() {
                       backgroundColor: 'var(--white)',
                       border: '1px solid var(--line)',
                       borderRadius: '8px',
-                      padding: '18px 16px',
+                      padding: '14px 14px',
                       boxShadow: '0 2px 6px rgba(7, 20, 38, 0.03)',
                       cursor: kpi.tabTarget ? 'pointer' : 'default',
                       transition: 'all 0.15s ease',
@@ -1908,7 +1908,7 @@ export default function AdminDashboard() {
                     <div
                       style={{
                         fontFamily: 'var(--font-heading)',
-                        fontSize: '1.85rem',
+                        fontSize: '1.65rem',
                         fontWeight: 700,
                         color: kpi.color,
                         lineHeight: 1,
