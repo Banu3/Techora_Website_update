@@ -40,9 +40,17 @@ if (useTurso) {
     dbUrl = dbUrl.replace(/^libsql:\/\//, 'https://');
   }
 
+  let authToken = (process.env.TURSO_AUTH_TOKEN || '').trim();
+  const jwtMatch = authToken.match(/eyJ[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+/);
+  if (jwtMatch) {
+    authToken = jwtMatch[0];
+  } else {
+    authToken = authToken.split(/\s+/)[0];
+  }
+
   const tursoClient = createClient({
     url: dbUrl,
-    authToken: (process.env.TURSO_AUTH_TOKEN || '').trim(),
+    authToken: authToken,
   });
 
   console.log(`[DB] Connected to Turso Cloud Database via HTTPS: ${dbUrl}`);
