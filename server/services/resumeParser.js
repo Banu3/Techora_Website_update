@@ -2,9 +2,23 @@ import { createRequire } from 'module';
 import path from 'path';
 
 const require = createRequire(import.meta.url);
-const { PDFParse } = require('pdf-parse');
-const mammoth = require('mammoth');
+let PDFParse = null;
+let mammoth = null;
 let tesseract = null;
+
+try {
+  const pp = require('pdf-parse');
+  PDFParse = pp.PDFParse || pp.default?.PDFParse || pp;
+} catch (e) {
+  console.warn('[PARSER] pdf-parse load warning:', e.message);
+}
+
+try {
+  mammoth = require('mammoth');
+} catch (e) {
+  console.warn('[PARSER] mammoth load warning:', e.message);
+}
+
 try {
   tesseract = require('tesseract.js');
 } catch (e) {
